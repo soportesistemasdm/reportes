@@ -1,0 +1,52 @@
+services:
+  postgres_db:
+    image: postgres:15-alpine
+    container_name: sap_reportes
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: sap_admin
+      POSTGRES_PASSWORD: PRUEBAS32222
+      POSTGRES_DB: sap_reports
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      # 👈 Cambiamos './init-db/...' por './backend/init-db/...'
+      - ./backend/init-db/init.sql:/docker-entrypoint-initdb.d/init.sql
+
+  backend:
+    build: ./backend
+    container_name: sap_backend
+    restart: unless-stopped
+    ports:
+      - "4000:4000"
+    environment:
+      - PORT=4000
+      - DATABASE_URL=postgresql://sap_admin:PRUEBAS32222@postgres_db:5432/sap_reports
+      - GOOGLE_DRIVE_PATH=/mnt/sap_drive
+      - JWT_SECRET=8b06f92493eee25ebf6426586ce8b55ba2fd4676fa46a3304528c4f160566ef4
+      # conexion a oracle
+      - ORACLE_USER=DELMONTE_DWH
+      - ORACLE_PASSWORD=CambiarPassword#2026
+      - ORACLE_CONN_STRING=192.168.0.6:1530/polux
+    depends_on:
+      - postgres_db
+    volumes:
+      - C:\proyectos\dm\reportes:/proyectos/dm/reportes:rw
+      - ./backend:/app
+      - /app/node_modules
+      
+  frontend:
+    build: ./frontend
+    container_name: sap_frontend
+    restart: unless-stopped
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+
+volumes:
+  postgres_data:
